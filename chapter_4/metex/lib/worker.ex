@@ -1,6 +1,8 @@
 defmodule Metex.Worker do
   use GenServer
 
+  # require IEx
+
   @name MW
 
   ## Client API
@@ -58,7 +60,7 @@ defmodule Metex.Worker do
   def terminate(reason, stats) do
     # We could write to a file, database etc
     IO.puts "server terminated because of #{inspect reason}"
-    inspect stats
+    IO.puts "Stats: #{inspect stats}"
     :ok
   end
 
@@ -70,6 +72,7 @@ defmodule Metex.Worker do
   ## Helper Functions
 
   defp temperature_of(location) do
+    # IEx.pry
     url_for(location) |> HTTPoison.get |> parse_response
   end
 

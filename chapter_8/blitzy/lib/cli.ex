@@ -31,10 +31,13 @@ defmodule Blitzy.CLI do
   end
 
   defp do_requests(n_requests, url, nodes) do
-    Logger.info "Pummelling #{url} with #{n_requests} requests"
+    Logger.info "Pummelling #{url} with #{n_requests} requests via #{inspect(nodes)} nodes"
 
     total_nodes  = Enum.count(nodes)
     req_per_node = div(n_requests, total_nodes)
+
+    Logger.info "total_nodes: #{total_nodes}"
+    Logger.info "req_per_node: #{req_per_node}"
 
     nodes
     |> Enum.flat_map(fn node ->

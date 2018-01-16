@@ -1,6 +1,8 @@
 defmodule ThySupervisor do
   use GenServer
 
+  require IEx
+
   #######
   # API #
   #######
@@ -62,18 +64,41 @@ defmodule ThySupervisor do
     end
   end
 
-  def handle_call({:restart_child, old_pid}, _from, state) do
-    case Map.fetch(state, old_pid) do
-      {:ok, child_spec} ->
-        case restart_child(old_pid, child_spec) do
-          {:ok, {pid, child_spec}} ->
+  # Original
+  # def handle_call({:restart_child, old_pid, _child_spec}, _from, state) do
+  #   IO.inspect(old_pid)
+  #   IO.inspect(state)
+  #   case Map.fetch(state, old_pid) do
+  #     {:ok, child_spec} ->
+  #       case restart_child(old_pid, child_spec) do
+  #         {:ok, {pid, child_spec}} ->
+  #           new_state = state
+  #                         |> Map.delete(old_pid)
+  #                         |> Map.put(pid, child_spec)
+  #           {:reply, {:ok, pid}, new_state}
+  #         :error ->
+  #           {:reply, {:error, "error restarting child"}, state}
+  #         unexpected ->
+  #           IO.puts "Got unexpected value 1 #{inspect(unexpected)}"
+  #       end
+  #     # _ ->
+  #     #   {:reply, :ok, state}
+  #     unexpected ->
+  #       IO.puts "Got unexpected value 2 #{inspect(unexpected)}"
+  #   end
+  # end
+
+  # Refactored as in http://relistan.com/elixir-thoughts-on-the-with-statement/
+  def handle_call({:restart_child, old_pid, child_spec}, _from, state) do
+    with {:ok, _old_child_spec} <- Map.fetch(state, old_pid),
+         {:ok, {pid, child_spec}} <- restart_child(old_pid, child_spec) do
             new_state = state
                           |> Map.delete(old_pid)
                           |> Map.put(pid, child_spec)
             {:reply, {:ok, pid}, new_state}
-          :error ->
-            {:reply, {:error, "error restarting child"}, state}
-        end
+    else
+      :error ->
+        {:reply, {:error, "error restarting child"}, state}
       _ ->
         {:reply, :ok, state}
     end
@@ -157,18 +182,41 @@ defmodule ThySupervisor do
     :ok
   end
 
+  # Original
+  # defp restart_child(pid, child_spec) when is_pid(pid) do
+  #   case terminate_child(pid) do
+  #     :ok ->
+  #       case start_child(child_spec) do
+  #         {:ok, new_pid} ->
+  #           {:ok, {new_pid, child_spec}}
+  #         :error ->
+  #           :error
+  #       end
+  #     :error ->
+  #       :error
+  #   end
+  # end
+
+  # Refactored
   defp restart_child(pid, child_spec) when is_pid(pid) do
-    case terminate_child(pid) do
-      :ok ->
-        case start_child(child_spec) do
-          {:ok, new_pid} ->
-            {:ok, {new_pid, child_spec}}
-          :error ->
-            :error
-        end
+    with :ok           <- terminate_child(pid),
+        {:ok, new_pid} <- start_child(child_spec) do
+           {:ok, {new_pid, child_spec}}
+    else
       :error ->
         :error
     end
   end
 
 end
+
+# iex(7)> {:ok, sup_pid} = ThySupervisor.start_link([])
+# {:ok, #PID<0.125.0>}
+# iex(8)> {:ok, child_pid} = ThySupervisor.start_child(sup_pid, {ThyWorker, :start_link, []})
+# {:ok, #PID<0.127.0>}
+# iex(9)> ThySupervisor.which_children(sup_pid)
+# %{#PID<0.127.0> => {ThyWorker, :start_link, []}}
+# iex(10)> {:ok, new_child_pid} = ThySupervisor.restart_child(sup_pid, child_pid, {NewWorker, :start_link, []})
+# {:ok, #PID<0.130.0>}
+# iex(11)> ThySupervisor.which_children(sup_pid)
+# %{#PID<0.130.0> => {NewWorker, :start_link, []}}

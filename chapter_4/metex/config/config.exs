@@ -3,7 +3,7 @@
 use Mix.Config
 
 config :metex,
-  api_key: "969038ec2b87be02c5f1e3f1344ee286"
+  api_key: "3b0549613fea083dfdd7f9857243c005"
 
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
